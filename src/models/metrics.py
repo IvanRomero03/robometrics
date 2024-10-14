@@ -1,3 +1,5 @@
+from pydantic import BaseModel
+
 
 class StaticMachine(BaseModel):
     cpu_count: int

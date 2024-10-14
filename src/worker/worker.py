@@ -2,15 +2,13 @@ from collections import defaultdict
 import psutil
 import os
 import time
-from pydantic import BaseModel
 import requests
 import socket
-from models.metrics import StaticMachine, MachineInfo, ProcessInfo
+from src.models.metrics import StaticMachine, MachineInfo, ProcessInfo
 
 nvml = True
 try:
     from pynvml import *
-    from pynvml_utils import nvidia_smi
 except ImportError:
     nvml = False
     print("Warning: pynvml not found. GPU monitoring will be disabled.")

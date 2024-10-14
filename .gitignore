@@ -2,3 +2,6 @@ mongo-data/
 build/
 .vscode/
 tests/
+**/__pycache__/
+**.egg-info/
+dist/
