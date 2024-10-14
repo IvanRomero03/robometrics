@@ -202,7 +202,7 @@ class Worker(object):
             time.sleep(0.1)
 
 
-if __name__ == "__main__":
+def main():
     import threading
     w = Worker()
     t1 = threading.Thread(target=w.run_pipe)
@@ -211,3 +211,7 @@ if __name__ == "__main__":
     t2.start()
     t1.join()
     t2.join()
+
+
+if __name__ == "__main__":
+    main()
