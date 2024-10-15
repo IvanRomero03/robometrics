@@ -34,10 +34,13 @@ class Worker(object):
             self.prepare_csvs()
         else:
             self.alone = self.testServerState()
-        nvmlInit()
+        if nvml:
+            nvmlInit()
         self.machine = self.get_static_machine_info()
-        nvmlInit()
-        self.gpu_handle = nvmlDeviceGetHandleByIndex(0)
+        if nvml:
+            nvmlInit()
+        if nvml:
+            self.gpu_handle = nvmlDeviceGetHandleByIndex(0)
         self.machine_id = self.getMachineId()
         self.post_machine()
 
@@ -97,6 +100,17 @@ class Worker(object):
                 gpu_driver_version="",
                 gpu_memory=0
             )
+        if not nvml:
+            return StaticMachine(
+                cpu_count=os.cpu_count(),
+                cpu_freq=psutil.cpu_freq().current,
+                total_memory=psutil.virtual_memory().total / 1024 ** 3,
+                total_gpu_memory=0,
+                gpu_name="",
+                gpu_count=0,
+                gpu_driver_version="",
+                gpu_memory=0
+            )
         device_count = nvmlDeviceGetCount()
         device = nvmlDeviceGetHandleByIndex(0)
         gpu_name = nvmlDeviceGetName(device)
@@ -135,9 +149,21 @@ class Worker(object):
         cls.watching_processes_ocupied = False
 
     def get_machine_info(self):
-        nvmlInit()
+        if nvml:
+            nvmlInit()
         cpu_percent = psutil.cpu_percent()
         memory_percent = psutil.virtual_memory().percent
+        if not nvml:
+            return MachineInfo(
+                cpu_percent=cpu_percent,
+                memory_percent=memory_percent,
+                gpu_percent=0,
+                gpu_memory_percent=0,
+                cpu_temp=None,
+                gpu_temp=None,
+                gpu_fan_speed=None,
+                gpu_power_usage=None
+            )
         if not nvml:
             return MachineInfo(
                 cpu_percent=cpu_percent,
@@ -173,13 +199,24 @@ class Worker(object):
         )
 
     def get_processes(self) -> list[ProcessInfo]:
-        processes_gpu_info = self.preload_gpu_process_info()
+        if nvml:
+            processes_gpu_info = self.preload_gpu_process_info()
+        else:
+            processes_gpu_info = {}
         processes = []
         for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent', 'status', 'create_time', 'num_threads', 'threads']):
             try:
                 if proc.info['pid'] not in self.watching_processes:
                     continue
                 pinfo = proc.info
+                if nvml:
+                    pinfo['gpu_memory'] = processes_gpu_info.get(
+                        pinfo['pid'], 0)
+                    pinfo['gpu_memory_percent'] = processes_gpu_info.get(
+                        pinfo['pid'], 0) / (self.machine.gpu_memory + 1)
+                else:
+                    pinfo['gpu_memory'] = 0
+                    pinfo['gpu_memory_percent'] = 0
                 processes.append(ProcessInfo(
                     pid=pinfo['pid'],
                     name=pinfo['name'],
@@ -189,9 +226,8 @@ class Worker(object):
                     create_time=pinfo['create_time'],
                     num_threads=pinfo['num_threads'],
                     threads=[thread.id for thread in pinfo['threads']],
-                    gpu_memory=processes_gpu_info.get(pinfo['pid'], 0),
-                    gpu_memory_percent=processes_gpu_info.get(
-                        pinfo['pid'], 0) / (self.machine.gpu_memory + 1),
+                    gpu_memory=pinfo['gpu_memory'],
+                    gpu_memory_percent=pinfo['gpu_memory_percent'],
                     ParentProcess=None
                 ))
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):

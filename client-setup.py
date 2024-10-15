@@ -2,11 +2,12 @@ from setuptools import setup, find_packages
 
 setup(
     name='roborregos-metrics-client',
-    version='0.0.6',
+    version='0.0.8',
     packages=find_packages(),
     install_requires=[
         'requests',
-        'pydantic'
+        'pydantic',
+        'psutil',
     ],
     entry_points={
         'console_scripts': [

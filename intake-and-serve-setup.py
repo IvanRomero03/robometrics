@@ -2,13 +2,15 @@ from setuptools import setup, find_packages
 
 setup(
     name='roborregos-metrics-server',
-    version='0.0.1',
+    version='0.0.2',
     packages=find_packages(),
     install_requires=[
         'requests',
         'fastapi',
         'pydantic',
-        'uvicorn'
+        'uvicorn',
+        'pymongo',
+        'psutil'
     ],
     entry_points={
         'console_scripts': [
