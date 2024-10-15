@@ -5,11 +5,17 @@ from pydantic import BaseModel
 from fastapi import FastAPI
 from pymongo import MongoClient
 from bson import ObjectId
+import sys
 
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://root:root@localhost:27017/")
+
+if len(sys.argv) > 1:
+    MONGO_URI = sys.argv[1]
+elif os.getenv("MONGO_URI") is None:
+    print("Using default MONGO_URI")
 
 app = FastAPI()
-app.mongo_db_client = MongoClient(
-    "mongodb://root:root@localhost:27017/")
+app.mongo_db_client = MongoClient(MONGO_URI)
 app.db = app.mongo_db_client["metrics"]
 
 
@@ -99,3 +105,8 @@ def serve_machine():
 @app.get("/serve/process")
 def serve_process():
     return [serialize_doc(x) for x in app.db.processes.find()]
+
+
+def main():
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
