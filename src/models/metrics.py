@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+import time
 
 
 class StaticMachine(BaseModel):
@@ -10,6 +11,7 @@ class StaticMachine(BaseModel):
     gpu_count: int
     gpu_driver_version: str
     gpu_memory: float
+    created_at: float = time.time()
 
 
 class MachineInfo(BaseModel):
@@ -21,6 +23,7 @@ class MachineInfo(BaseModel):
     gpu_temp: float | None
     gpu_fan_speed: float | None
     gpu_power_usage: int | None
+    created_at: float = time.time()
     # processes: list[ProcessInfo]
 
 
@@ -36,3 +39,4 @@ class ProcessInfo(BaseModel):
     num_threads: int
     threads: list[int]
     ParentProcess: int | None
+    created_at: float = time.time()

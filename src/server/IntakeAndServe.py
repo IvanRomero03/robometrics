@@ -13,6 +13,11 @@ app.mongo_db_client = MongoClient(
 app.db = app.mongo_db_client["metrics"]
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 @app.post("/intake/process/{machine_id}")
 def intake_process(machine_id: str, process_info: ProcessInfo):
     t = process_info.model_dump()
@@ -29,6 +34,17 @@ def intake_processes(machine_id: str, processes: List[ProcessInfo]):
         p.append(t)
     if len(p) > 0:
         app.db.processes.insert_many(p)
+
+
+@app.post("/intake/many/machine/{machine_id}")
+def intake_many_machine(machine_id: str, machines: List[Dict[str, Union[str, float]]]):
+    p = []
+    for machine in machines:
+        t = machine
+        t["machine_id"] = machine_id
+        p.append(t)
+    if len(p) > 0:
+        app.db.machines.insert_many(p)
 
 
 @app.post("/intake/machine/{machine_id}")
