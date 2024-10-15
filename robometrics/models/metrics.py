@@ -24,7 +24,6 @@ class MachineInfo(BaseModel):
     gpu_fan_speed: float | None
     gpu_power_usage: int | None
     created_at: float = time.time()
-    # processes: list[ProcessInfo]
 
 
 class ProcessInfo(BaseModel):

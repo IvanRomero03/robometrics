@@ -1,7 +1,7 @@
 import numpy as np
 from numba import cuda
 import time
-from src.lib.register import Register
+from robometrics.lib.register import Register
 
 # Define the CUDA kernel
 

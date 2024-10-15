@@ -10,8 +10,8 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'roborregos-metrics-worker = src.worker.worker:main',
-            'roborregos-metrics-sync   = src.worker.worker:sync'
+            'robometrics-worker = robometrics.worker.worker:main',
+            'robometrics-sync   = robometrics.worker.worker:sync'
         ]
     }
 )

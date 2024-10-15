@@ -1,4 +1,4 @@
-from src.worker.worker import ProcessInfo, MachineInfo, StaticMachine
+from robometrics.worker.worker import ProcessInfo, MachineInfo, StaticMachine
 import os
 from typing import List, Dict, Union
 from pydantic import BaseModel

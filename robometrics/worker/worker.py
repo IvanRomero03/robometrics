@@ -4,7 +4,7 @@ import os
 import time
 import requests
 import socket
-from src.models.metrics import StaticMachine, MachineInfo, ProcessInfo
+from robometrics.models.metrics import StaticMachine, MachineInfo, ProcessInfo
 
 nvml = True
 try:
@@ -22,7 +22,7 @@ class Worker(object):
     server_url: str | None = None
     alone: bool = True
 
-    def __new__(cls):
+    def __new__(cls, *args, **kwargs):
         if not hasattr(cls, 'instance'):
             cls.instance = super(Worker, cls).__new__(cls)
         return cls.instance
@@ -31,6 +31,7 @@ class Worker(object):
         self.server_url = server_url
         if server_url is None:
             self.alone = True
+            self.prepare_csvs()
         else:
             self.alone = self.testServerState()
         nvmlInit()
@@ -39,7 +40,6 @@ class Worker(object):
         self.gpu_handle = nvmlDeviceGetHandleByIndex(0)
         self.machine_id = self.getMachineId()
         self.post_machine()
-        # self.watching_processes = []
 
     def testServerState(self):
         try:
@@ -50,15 +50,20 @@ class Worker(object):
         return True
 
     def prepare_csvs(self):
+        if not os.path.exists("./async"):
+            os.mkdir("./async")
         if not os.path.exists("./async/static.csv"):
+            os.mknod("./async/static.csv")
             with open("./async/static.csv", "w") as f:
                 f.write(
                     "machine_id,cpu_count,cpu_freq,total_memory,total_gpu_memory,gpu_name,gpu_count,gpu_driver_version,gpu_memory,created_at\n")
         if not os.path.exists("./async/machine.csv"):
+            os.mknod("./async/machine.csv")
             with open("./async/machine.csv", "w") as f:
                 f.write(
                     "machine_id,cpu_percent,memory_percent,gpu_percent,gpu_memory_percent,cpu_temp,gpu_temp,gpu_fan_speed,gpu_power_usage,created_at\n")
         if not os.path.exists("./async/processes.csv"):
+            os.mknod("./async/processes.csv")
             with open("./async/processes.csv", "w") as f:
                 f.write(
                     "pid,name,cpu_percent,memory_percent,gpu_memory,gpu_memory_percent,status,create_time,num_threads,threads,ParentProcess,created_at\n")
