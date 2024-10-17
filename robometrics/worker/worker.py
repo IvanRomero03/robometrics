@@ -49,8 +49,10 @@ class Worker(object):
         if server_url is None:
             self.alone = True
             self.prepare_csvs()
+            print("Warning: No server_url provided. Running in standalone mode.")
         else:
-            self.alone = self.testServerState()
+            print("Server URL provided. Running in server mode.")
+            self.alone = not self.testServerState()
         if nvml:
             nvmlInit()
         self.machine = self.get_static_machine_info()
@@ -58,7 +60,7 @@ class Worker(object):
             nvmlInit()
         if nvml:
             self.gpu_handle = nvmlDeviceGetHandleByIndex(0)
-        if jetson:
+        if isJetson:
             self.jetson = jtop()
             self.jetson.start()
         self.machine_id = self.getMachineId()
@@ -69,6 +71,14 @@ class Worker(object):
             nvmlShutdown()
         if self.jetson:
             self.jetson.stop()
+
+    @staticmethod
+    def testServerStateStatic(server_url: str) -> bool:
+        try:
+            requests.get(server_url + "/health")
+        except Exception as _:
+            return False
+        return True
 
     def testServerState(self):
         try:
@@ -424,7 +434,11 @@ def main():
     if len(args) > 1:
         server_url = args[1]
     else:
-        server_url = None
+        if Worker.testServerStateStatic("http://localhost:8000"):
+            server_url = "http://localhost:8000"
+        else:
+            server_url = None
+    print(f"Server URL: {server_url}")
     w = Worker(server_url)
     t1 = threading.Thread(target=w.run_pipe)
     t2 = threading.Thread(target=w.run_continuously)
