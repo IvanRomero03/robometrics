@@ -6,3 +6,4 @@ tests/
 **.egg-info/
 dist/
 async/
+robometrics-viz/

@@ -12,6 +12,22 @@ try:
 except ImportError:
     nvml = False
     print("Warning: pynvml not found. GPU monitoring will be disabled.")
+isJetson = False
+if not nvml:
+    try:
+        from jtop import jtop
+        with jtop() as jetson:
+            if not jetson.ok():
+                print(
+                    "Warning: jtop.ok() returned False. GPU monitoring will be disabled.")
+            elif jetson.gpu == {}:
+                print("Warning: jtop.gpu is empty. GPU monitoring will be disabled.")
+            else:
+                isJetson = True
+    except ImportError:
+        print("Warning: jtop not found. GPU monitoring will be disabled.")
+    except Exception as e:
+        print(e)
 
 
 class Worker(object):
@@ -21,6 +37,7 @@ class Worker(object):
     machine_id: str = ""
     server_url: str | None = None
     alone: bool = True
+    jetson = None
 
     def __new__(cls, *args, **kwargs):
         if not hasattr(cls, 'instance'):
@@ -41,8 +58,17 @@ class Worker(object):
             nvmlInit()
         if nvml:
             self.gpu_handle = nvmlDeviceGetHandleByIndex(0)
+        if jetson:
+            self.jetson = jtop()
+            self.jetson.start()
         self.machine_id = self.getMachineId()
         self.post_machine()
+
+    def __del__(self):
+        if nvml:
+            nvmlShutdown()
+        if self.jetson:
+            self.jetson.stop()
 
     def testServerState(self):
         try:
@@ -90,26 +116,27 @@ class Worker(object):
     @staticmethod
     def get_static_machine_info():
         if not nvml:
+            if not isJetson:
+                return StaticMachine(
+                    cpu_count=os.cpu_count(),
+                    cpu_freq=psutil.cpu_freq().current,
+                    total_memory=psutil.virtual_memory().total / 1024 ** 3,
+                    total_gpu_memory=0,
+                    gpu_name="",
+                    gpu_count=0,
+                    gpu_driver_version="",
+                    gpu_memory=0
+                )
+            _gpu_info = jetson.stats["GPU"]
             return StaticMachine(
                 cpu_count=os.cpu_count(),
                 cpu_freq=psutil.cpu_freq().current,
                 total_memory=psutil.virtual_memory().total / 1024 ** 3,
-                total_gpu_memory=0,
-                gpu_name="",
-                gpu_count=0,
+                total_gpu_memory=_gpu_info["total"],
+                gpu_name="Jetson",
+                gpu_count=1,
                 gpu_driver_version="",
-                gpu_memory=0
-            )
-        if not nvml:
-            return StaticMachine(
-                cpu_count=os.cpu_count(),
-                cpu_freq=psutil.cpu_freq().current,
-                total_memory=psutil.virtual_memory().total / 1024 ** 3,
-                total_gpu_memory=0,
-                gpu_name="",
-                gpu_count=0,
-                gpu_driver_version="",
-                gpu_memory=0
+                gpu_memory=_gpu_info["used"]
             )
         device_count = nvmlDeviceGetCount()
         device = nvmlDeviceGetHandleByIndex(0)
@@ -128,7 +155,7 @@ class Worker(object):
             gpu_memory=gpu_memory
         )
 
-    @classmethod
+    @ classmethod
     def add_process(cls, pid: int):
         while cls.watching_processes_ocupied:
             time.sleep(0.1)
@@ -137,7 +164,7 @@ class Worker(object):
             cls.watching_processes.append(pid)
         cls.watching_processes_ocupied = False
 
-    @classmethod
+    @ classmethod
     def unregister_process(cls, pid: int):
         while cls.watching_processes_ocupied:
             time.sleep(0.1)
@@ -154,26 +181,27 @@ class Worker(object):
         cpu_percent = psutil.cpu_percent()
         memory_percent = psutil.virtual_memory().percent
         if not nvml:
+            if not isJetson:
+                return MachineInfo(
+                    cpu_percent=cpu_percent,
+                    memory_percent=memory_percent,
+                    gpu_percent=0,
+                    gpu_memory_percent=0,
+                    cpu_temp=None,
+                    gpu_temp=None,
+                    gpu_fan_speed=None,
+                    gpu_power_usage=None
+                )
+            _gpu_info = jetson.stats["GPU"]
             return MachineInfo(
                 cpu_percent=cpu_percent,
                 memory_percent=memory_percent,
-                gpu_percent=0,
-                gpu_memory_percent=0,
-                cpu_temp=None,
-                gpu_temp=None,
-                gpu_fan_speed=None,
-                gpu_power_usage=None
-            )
-        if not nvml:
-            return MachineInfo(
-                cpu_percent=cpu_percent,
-                memory_percent=memory_percent,
-                gpu_percent=0,
-                gpu_memory_percent=0,
-                cpu_temp=None,
-                gpu_temp=None,
-                gpu_fan_speed=None,
-                gpu_power_usage=None
+                gpu_percent=self.jetson.stats["GPU"]["usage"],
+                gpu_memory_percent=_gpu_info["used"] / self.machine.gpu_memory,
+                cpu_temp=self.jetson.stats["CPU"]["temp"],
+                gpu_temp=_gpu_info["temp"],
+                gpu_fan_speed=jetson.stats["FAN"]["speed"],
+                gpu_power_usage=_gpu_info["power"]
             )
         gpu_memory = nvmlDeviceGetMemoryInfo(self.gpu_handle)
         gpu_percent = gpu_memory.used / (gpu_memory.total + 1)
@@ -234,9 +262,17 @@ class Worker(object):
                 pass
         return processes
 
+    def preload_gpu_process_info_jetson(self) -> dict[int, int]:
+        processes_gpu_info = defaultdict(int)
+        for process in self.jetson.processes:
+            processes_gpu_info[process[0]] = process[8]
+        return processes_gpu_info
+
     def preload_gpu_process_info(self) -> dict[int, int]:
         if not nvml:
-            return {}
+            if not isJetson:
+                return {}
+            return self.preload_gpu_process_info_jetson()
         processes = nvmlDeviceGetComputeRunningProcesses(self.gpu_handle)
         processes_gpu_info = defaultdict(int)
         for process in processes:

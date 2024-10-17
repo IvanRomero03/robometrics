@@ -14,6 +14,8 @@ if len(sys.argv) > 1:
 elif os.getenv("MONGO_URI") is None:
     print("Using default MONGO_URI")
 
+print(f"Using MONGO_URI: {MONGO_URI}")
+
 app = FastAPI()
 app.mongo_db_client = MongoClient(MONGO_URI)
 app.db = app.mongo_db_client["metrics"]
