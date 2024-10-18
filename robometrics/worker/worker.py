@@ -304,7 +304,7 @@ class Worker(object):
                 p["created_at"] = createdAt
             try:
                 requests.post(self.server_url + "/intake/processes/" + self.machine_id,
-                              json=[process.model_dump() for process in processes], headers={"Content-Type": "application/json"})
+                              json=ps, headers={"Content-Type": "application/json"})
             except Exception as e:
                 print(e)
         else:
