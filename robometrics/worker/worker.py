@@ -250,8 +250,10 @@ class Worker(object):
                 if nvml:
                     pinfo['gpu_memory'] = processes_gpu_info.get(
                         pinfo['pid'], 0)
-                    pinfo['gpu_memory_percent'] = processes_gpu_info.get(
-                        pinfo['pid'], 0) / (self.machine.gpu_memory + 1)
+                    kb_memory = processes_gpu_info.get(pinfo['pid'], 0)
+                    # machine.gpu_memory is in GB
+                    pinfo['gpu_memory_percent'] = (
+                        kb_memory / 1024) / (self.machine.gpu_memory * 1024)
                 else:
                     pinfo['gpu_memory'] = 0
                     pinfo['gpu_memory_percent'] = 0
