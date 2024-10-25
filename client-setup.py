@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='roborregos-metrics-client',
-    version='1.2.3',
+    version='1.2.2024',
     packages=find_packages(),
     install_requires=[
         'requests',
