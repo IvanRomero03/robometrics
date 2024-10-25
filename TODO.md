@@ -1,0 +1,3 @@
+- [ ] AddProcess.h -> add concurrency to make register a non blocking call. E.g. register.py
+- [ ] Fix the viz bugs lol
+- [ ] Add more viz features

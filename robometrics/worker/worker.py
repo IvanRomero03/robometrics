@@ -5,6 +5,7 @@ import time
 import requests
 import socket
 from robometrics.models.metrics import StaticMachine, MachineInfo, ProcessInfo
+from typing import List, Dict, Union, Optional, Set
 
 nvml = True
 try:
@@ -32,10 +33,10 @@ if not nvml:
 
 class Worker(object):
     machine: StaticMachine
-    watching_processes: list[int] = []
+    watching_processes: Set[int] = []
     watching_processes_ocupied: bool = False
     machine_id: str = ""
-    server_url: str | None = None
+    server_url: Union[str, None]
     alone: bool = True
     jetson = None
 
@@ -44,7 +45,7 @@ class Worker(object):
             cls.instance = super(Worker, cls).__new__(cls)
         return cls.instance
 
-    def __init__(self, server_url: str | None = None):
+    def __init__(self, server_url: Union[str, None] = None):
         self.server_url = server_url
         if server_url is None:
             self.alone = True
@@ -137,16 +138,19 @@ class Worker(object):
                     gpu_driver_version="",
                     gpu_memory=0
                 )
+            print("Jetson detected StaticMachine: ")
+            print(jetson._stats['gpu'])
             _gpu_info = jetson.stats["GPU"]
+            print(_gpu_info)
             return StaticMachine(
                 cpu_count=os.cpu_count(),
                 cpu_freq=psutil.cpu_freq().current,
                 total_memory=psutil.virtual_memory().total / 1024 ** 3,
-                total_gpu_memory=_gpu_info["total"],
+                total_gpu_memory=jetson._memory["RAM"]["tot"],
                 gpu_name="Jetson",
                 gpu_count=1,
                 gpu_driver_version="",
-                gpu_memory=_gpu_info["used"]
+                gpu_memory=_gpu_info*jetson._memory["RAM"]["tot"] / 100
             )
         device_count = nvmlDeviceGetCount()
         device = nvmlDeviceGetHandleByIndex(0)
@@ -206,12 +210,12 @@ class Worker(object):
             return MachineInfo(
                 cpu_percent=cpu_percent,
                 memory_percent=memory_percent,
-                gpu_percent=self.jetson.stats["GPU"]["usage"],
-                gpu_memory_percent=_gpu_info["used"] / self.machine.gpu_memory,
-                cpu_temp=self.jetson.stats["CPU"]["temp"],
-                gpu_temp=_gpu_info["temp"],
-                gpu_fan_speed=jetson.stats["FAN"]["speed"],
-                gpu_power_usage=_gpu_info["power"]
+                gpu_percent=_gpu_info,
+                gpu_memory_percent=_gpu_info,
+                cpu_temp=None,
+                gpu_temp=None,
+                gpu_fan_speed=None,
+                gpu_power_usage=None
             )
         gpu_memory = nvmlDeviceGetMemoryInfo(self.gpu_handle)
         gpu_percent = gpu_memory.used / (gpu_memory.total + 1)
@@ -236,7 +240,7 @@ class Worker(object):
             gpu_power_usage=gpu_power_usage
         )
 
-    def get_processes(self) -> list[ProcessInfo]:
+    def get_processes(self) -> List[ProcessInfo]:
         if nvml:
             processes_gpu_info = self.preload_gpu_process_info()
         else:
@@ -274,13 +278,13 @@ class Worker(object):
                 pass
         return processes
 
-    def preload_gpu_process_info_jetson(self) -> dict[int, int]:
+    def preload_gpu_process_info_jetson(self) -> Dict[int, int]:
         processes_gpu_info = defaultdict(int)
         for process in self.jetson.processes:
             processes_gpu_info[process[0]] = process[8]
         return processes_gpu_info
 
-    def preload_gpu_process_info(self) -> dict[int, int]:
+    def preload_gpu_process_info(self) -> Dict[int, int]:
         if not nvml:
             if not isJetson:
                 return {}
@@ -291,7 +295,7 @@ class Worker(object):
             processes_gpu_info[process.pid] = process.usedGpuMemory
         return processes_gpu_info
 
-    def register_records(self, machine: MachineInfo, processes: list[ProcessInfo]):
+    def register_records(self, machine: MachineInfo, processes: List[ProcessInfo]):
         createdAt = time.time()
         if not self.alone:
             d = machine.model_dump()
@@ -326,9 +330,10 @@ class Worker(object):
             time.sleep(1)
 
     def run_pipe(self):
-        if (os.path.exists("/tmp/worker")):
-            os.remove("/tmp/worker")
-        os.mkfifo("/tmp/worker")
+        # if (os.path.exists("/tmp/worker")):
+        #     os.remove("/tmp/worker")
+        if not os.path.exists("/tmp/worker"):
+            os.mkfifo("/tmp/worker")
         print("Hearing")
         while True:
             time.sleep(0.1)
@@ -338,8 +343,10 @@ class Worker(object):
                     try:
                         pid = int(data)
                         if pid < 0:
+                            print(f"Unregistering process {pid}")
                             self.unregister_process(-pid)
                         else:
+                            print(f"Registering process {pid}")
                             self.add_process(pid)
                     except ValueError:
                         pass

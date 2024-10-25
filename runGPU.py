@@ -16,7 +16,7 @@ def vector_add(a, b, c):
 
 
 def run_continuously():
-    Register().auto_register()
+    Register().async_auto_register()
     N = 1000
     a = np.ones(N, dtype=np.float32)
     b = np.ones(N, dtype=np.float32)

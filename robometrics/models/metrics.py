@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 import time
+from typing import Union, List
 
 
 class StaticMachine(BaseModel):
@@ -19,10 +20,10 @@ class MachineInfo(BaseModel):
     memory_percent: float
     gpu_percent: float
     gpu_memory_percent: float
-    cpu_temp: float | None
-    gpu_temp: float | None
-    gpu_fan_speed: float | None
-    gpu_power_usage: int | None
+    cpu_temp: Union[float, None]
+    gpu_temp: Union[float, None]
+    gpu_fan_speed: Union[float, None]
+    gpu_power_usage: Union[int, None]
     created_at: float = time.time()
 
 
@@ -36,6 +37,6 @@ class ProcessInfo(BaseModel):
     status: str
     create_time: float
     num_threads: int
-    threads: list[int]
-    ParentProcess: int | None
+    threads: List[int]
+    ParentProcess: Union[int, None]
     created_at: float = time.time()
