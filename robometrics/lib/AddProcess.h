@@ -2,7 +2,7 @@
 #include <unistd.h>
 
 #define PIPEFILE "/tmp/worker"
-
+// TODO Add multithreading and update
 namespace AddProcess
 {
     int AddProcessByPID(int pid)

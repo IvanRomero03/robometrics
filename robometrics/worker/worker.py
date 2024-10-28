@@ -35,6 +35,7 @@ class Worker(object):
     machine: StaticMachine
     watching_processes: Set[int] = []
     watching_processes_ocupied: bool = False
+    processes_names: Dict[int, str] = {}
     machine_id: str = ""
     server_url: Union[str, None]
     alone: bool = True
@@ -263,7 +264,8 @@ class Worker(object):
                     pinfo['gpu_memory_percent'] = 0
                 processes.append(ProcessInfo(
                     pid=pinfo['pid'],
-                    name=pinfo['name'],
+                    name=self.processes_names.get(
+                        pinfo['pid'], "") + "=" + pinfo['name'],
                     cpu_percent=pinfo['cpu_percent'],
                     memory_percent=pinfo['memory_percent'],
                     status=pinfo['status'],
@@ -330,8 +332,6 @@ class Worker(object):
             time.sleep(1)
 
     def run_pipe(self):
-        # if (os.path.exists("/tmp/worker")):
-        #     os.remove("/tmp/worker")
         if not os.path.exists("/tmp/worker"):
             os.mkfifo("/tmp/worker")
         print("Hearing")
@@ -341,13 +341,17 @@ class Worker(object):
                 data = fifo.read()
                 if data and len(data) > 0:
                     try:
+                        pid, name = data.split(
+                            "$$") if "$$" in data else (data, "")
                         pid = int(data)
                         if pid < 0:
                             print(f"Unregistering process {pid}")
-                            self.unregister_process(-pid)
+                            self.unregister_process(-1*pid)
+                            del self.processes_names[-1*pid]
                         else:
                             print(f"Registering process {pid}")
                             self.add_process(pid)
+                            self.processes_names[pid] = name
                     except ValueError:
                         pass
             time.sleep(0.1)

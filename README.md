@@ -54,7 +54,7 @@ robometrics-server
 Refer to the viz repo: [RoboMetrics-Viz](https://github.com/RoBorregos/robometrics-viz)
 
 
-![Architecture](.docs/images/Arch.jpeg)
+![Architecture](https://github.com/RoBorregos/robometrics/blob/main/.docs/images/Arch.jpeg?raw=true)
 
 
 ## Recomendations
