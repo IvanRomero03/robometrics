@@ -10,7 +10,7 @@ class Register(object):
 
     @classmethod
     def register_async(cls, pid: int, name: str):
-        t = threading.Thread(target=cls.add_process_async, args=(pid, name,))
+        t = threading.Thread(target=cls.add_process_async, args=(pid, name))
         t.start()
 
     @classmethod

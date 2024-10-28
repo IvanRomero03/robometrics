@@ -341,11 +341,12 @@ class Worker(object):
             time.sleep(0.1)
             with open("/tmp/worker", "r") as fifo:
                 data = fifo.read()
+                print(data)
                 if data and len(data) > 0:
                     try:
                         pid, name = data.split(
                             "$$") if "$$" in data else (data, "")
-                        pid = int(data)
+                        pid = int(pid)
                         if pid < 0:
                             print(f"Unregistering process {pid}")
                             self.unregister_process(-1*pid)
@@ -354,8 +355,8 @@ class Worker(object):
                             print(f"Registering process {pid}")
                             self.add_process(pid)
                             self.processes_names[pid] = name
-                    except ValueError:
-                        pass
+                    except Exception as e:
+                        print("Failed to parse data", e)
             time.sleep(0.1)
 
 
