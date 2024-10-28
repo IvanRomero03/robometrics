@@ -5,7 +5,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='roborregos-metrics-client',
-    version='2.0.1',
+    version='2.1.0',
     packages=find_packages(),
     install_requires=[
         'requests',

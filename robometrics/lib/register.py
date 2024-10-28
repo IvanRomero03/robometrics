@@ -7,7 +7,6 @@ class Register(object):
     def add_process_async(cls, pid: int, name: str):
         with open('/tmp/worker', 'w') as f:
             f.write(str(pid) + '$$' + name)
-        # print(f"Process {pid} registered.")
 
     @classmethod
     def register_async(cls, pid: int, name: str):

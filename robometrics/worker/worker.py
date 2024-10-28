@@ -1,11 +1,13 @@
-from collections import defaultdict
-import psutil
 import os
-import time
-import requests
 import socket
-from robometrics.models.metrics import StaticMachine, MachineInfo, ProcessInfo
-from typing import List, Dict, Union, Optional, Set
+import time
+from collections import defaultdict
+from typing import Dict, List, Optional, Set
+
+import psutil
+import requests
+
+from robometrics.models.metrics import MachineInfo, ProcessInfo, StaticMachine
 
 nvml = True
 try:
@@ -37,7 +39,7 @@ class Worker(object):
     watching_processes_ocupied: bool = False
     processes_names: Dict[int, str] = {}
     machine_id: str = ""
-    server_url: Union[str, None]
+    server_url: Optional[str] = None
     alone: bool = True
     jetson = None
 
@@ -46,7 +48,7 @@ class Worker(object):
             cls.instance = super(Worker, cls).__new__(cls)
         return cls.instance
 
-    def __init__(self, server_url: Union[str, None] = None):
+    def __init__(self, server_url: Optional[str] = None):
         self.server_url = server_url
         if server_url is None:
             self.alone = True
@@ -441,8 +443,8 @@ def sync():
 
 
 def main():
-    import threading
     import sys
+    import threading
     args = sys.argv
     if len(args) > 1:
         server_url = args[1]
